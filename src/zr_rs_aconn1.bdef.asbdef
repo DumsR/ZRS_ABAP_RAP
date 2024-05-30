@@ -20,10 +20,13 @@ authorization master( global )
   field ( numbering : managed )
    Uuid;
 
-
   create;
   update;
   delete;
+
+  validation CheckSemanticKey on save { create; update; }
+  validation CheckCarrier on save { create; update; }
+  validation CheckAirportsDiff on save { create; update; }
 
   draft action Activate optimized;
   draft action Discard;
