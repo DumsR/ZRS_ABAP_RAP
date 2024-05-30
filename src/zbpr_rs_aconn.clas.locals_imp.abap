@@ -12,18 +12,19 @@ private section.
             importing
                 request requested_authorizations for flightconn
                 result result
-    ,   checksemantickey for validate on save
-            importing keys for flightconn~checksemantickey
     ,   grab_syMsg
             importing iv_severity like msg_err optional "default msg_err
             returning value(bhv_msg) type ref to if_abap_behv_message
+    ,   CheckSemanticKey for validate on save
+            importing keys for flightconn~CheckSemanticKey
     ,
-        checkairportsdiff for validate on save
-              importing keys for flightconn~checkairportsdiff.
-
-            methods checkcarrier for validate on save
-              importing keys for flightconn~checkcarrier.
-endclass.
+        CheckAirportsDiff for validate on save
+              importing keys for flightconn~CheckAirportsDiff
+    ,   CheckCarrier for validate on save
+              importing keys for flightconn~CheckCarrier
+    ,   GetCities for determine on save
+              importing keys for flightconn~GetCities
+.endclass.
 class lhc_zr_rs_aconn1 implementation.
 **********************************************************************
 method get_global_authorizations.
@@ -152,6 +153,42 @@ method checkAirportsDiff.
             assigning field-symbol(<failed>).
         <failed>-%tky = conn-%tky.
     endloop.
+endmethod.
+**********************************************************************
+method GetCities.
+    data:
+        read_keay     type table for read import ZR_RS_ACONN1
+    ,   connections type table for read result   ZR_RS_ACONN1
+    ,   conns_upd   type table for update         ZR_RS_ACONN1
+    .
+    read entities of ZR_RS_ACONN1 in local mode
+        entity FlightConn
+        fields ( CityFrom CityTo )
+        with corresponding #( keys )
+        result connections.
+
+    loop at connections assigning field-symbol(<conn>).
+        select single from /DMO/I_Airport
+            fields City, CountryCode
+            where AirportID = @<conn>-CityFrom
+            into ( @data(lv_CityFrom), @<conn>-CountryFrom  ).
+
+        select single from /DMO/I_Airport
+            fields City, CountryCode
+            where AirportID = @<conn>-CityTo
+            into ( @data(lv_CityTo), @<conn>-CountryTo  ).
+
+        <conn>-LocalCreatedBy =
+            lv_CityFrom && '>>' && lv_CityTo.
+    endloop.
+    conns_upd = corresponding #( connections ).
+    modify entities of ZR_RS_ACONN1 in local mode
+        entity FlightConn update
+        fields ( CountryFrom CountryTo LocalCreatedBy )
+            with conns_upd
+        reported data(reported_records).
+        reported-flightconn =
+            corresponding #( reported_records-flightconn ).
 endmethod.
 **********************************************************************
 endclass.

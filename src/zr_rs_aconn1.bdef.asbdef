@@ -27,6 +27,7 @@ authorization master( global )
   validation CheckSemanticKey on save { create; update; }
   validation CheckCarrier on save { create; update; }
   validation CheckAirportsDiff on save { create; update; }
+  determination GetCities on save { field CityFrom, CityTo; }
 
   draft action Activate optimized;
   draft action Discard;
